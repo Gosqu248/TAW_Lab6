@@ -33,6 +33,16 @@ public async deleteData() {
     }
 } 
 
+public async getAllPosts() {
+    try {
+        const result = await PostModel.find();
+        return result;
+    } catch (error) {
+        console.error('Wystąpił błąd podczas pobierania danych: ', error);
+        throw new Error('Wystąpił błąd podczas pobierania danych!');
+    }
+}
+
 public async getNumPosts(numStr: string) {
     try {
         const num = parseInt(numStr);
@@ -44,15 +54,6 @@ public async getNumPosts(numStr: string) {
     }
 }
 
-public async getAllPosts() {
-    try {
-        const result = await PostModel.find();
-        return result;
-    } catch (error) {
-        console.error('Wystąpił błąd podczas pobierania danych: ', error);
-        throw new Error('Wystąpił błąd podczas pobierania danych!');
-    }
-}
 
 public async deletePostById(query: Query<number | string | boolean>) {
     try {

@@ -3,6 +3,7 @@ import Controller from '../interfaces/controller.interface';
 import { Request, Response, NextFunction, Router } from 'express';
 import DataService from '../modules/services/data.service';
 import {logger} from "../middlewares/logger.middleware";
+import Joi from 'joi';
 
 
 
@@ -32,16 +33,17 @@ import {logger} from "../middlewares/logger.middleware";
 
     private addPost = async (request: Request, response: Response, next: NextFunction) => {
         const {title, text, image} = request.body;
-        const readingData = {
-            title,
-            text,
-            image
-        };
+
+        const schema = Joi.object({
+            title: Joi.string().required(),
+            text: Joi.string().required(),
+            image: Joi.string().uri().required()
+        });
         try {
-            await this.dataService.createPost(readingData);
-            response.status(200).json(readingData);
+            const validatedDate = await schema.validateAsync({title, text, image});
+            await this.dataService.createPost(validatedDate);
+            response.status(200).json(validatedDate);
         } catch (error: any) {
-                console.log('eeee', error)
                 console.error(`Validation Error: ${error.message}`);
                 response.status(400).json({error: 'Invalid input data.'});
         }
@@ -59,6 +61,11 @@ import {logger} from "../middlewares/logger.middleware";
         response.status(200);
     };
 
+    private getAllPosts = async (request: Request, response: Response, next: NextFunction) => {
+        const posts = await this.dataService.getAllPosts();
+        response.status(200).json(posts);
+    };
+
     private getNumPosts = async (request: Request, response: Response, next: NextFunction) => {
         const { num } = request.params;
         const numData = await this.dataService.getNumPosts(num);
@@ -67,10 +74,7 @@ import {logger} from "../middlewares/logger.middleware";
 
     
     
-    private getAllPosts = async (request: Request, response: Response, next: NextFunction) => {
-        const posts = await this.dataService.getAllPosts();
-        response.status(200).json(posts);
-    };
+   
 
     private deletePostById = async (request: Request, response: Response, next: NextFunction) => {
         const { id } = request.params;
