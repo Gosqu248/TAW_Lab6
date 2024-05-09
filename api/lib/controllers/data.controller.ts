@@ -1,88 +1,85 @@
-    import Controller from '../interfaces/controller.interface';
-    import { Request, Response, NextFunction, Router } from 'express';
+import { checkPostCount } from '../middlewares/checkPostCount.middleware';
+import Controller from '../interfaces/controller.interface';
+import { Request, Response, NextFunction, Router } from 'express';
+import DataService from '../modules/services/data.service';
+import {logger} from "../middlewares/logger.middleware";
+
+
 
     let testArr = [4,5,6,3,5,3,7,5,13,5,6,4,3,6,3,6];
 
     class PostController implements Controller {
     public path = '/api/post';
     public router = Router();
+    public dataService = new DataService();
 
     constructor() {
         this.initializeRoutes();
     }
 
+       
+
     private initializeRoutes() {
-        this.router.get(`${this.path}/latest`, this.getAll);
-        this.router.post(`${this.path}s/:id`, this.addData);
+        this.router.post(`${this.path}`,logger, this.addPost);
+        this.router.get(`${this.path}/:id`,logger, this.getElementById );
+        this.router.delete(`${this.path}s`,logger, this.removePosts);
 
-        this.router.get(`${this.path}/:id`, this.getById);  
-        this.router.post(`${this.path}`, this.addElement);
-        this.router.delete(`${this.path}/:id`, this.deleteById);
-        this.router.post(`${this.path}/:num`, this.getNItems);
-        this.router.get(`${this.path}s`, this.getAll);
-        this.router.delete(`${this.path}s`, this.deleteAll);
+        this.router.get(`${this.path}s`,logger, this.getAllPosts);
+        this.router.delete(`${this.path}:id`,logger, this.deletePostById);
+        this.router.post(`${this.path}/:num`, logger, this.getNumPosts);
 
     }
 
-        private getAll = async (request: Request, response: Response) => {
-            response.status(200).json(testArr);
+    private addPost = async (request: Request, response: Response, next: NextFunction) => {
+        const {title, text, image} = request.body;
+        const readingData = {
+            title,
+            text,
+            image
         };
-
-        private addData = async(req: Request, res: Response, next: NextFunction) => {
-            const {elem} = req.body;
-    
-            testArr.push(parseInt(elem));
-
-            res.status(200).json(testArr);
+        try {
+            await this.dataService.createPost(readingData);
+            response.status(200).json(readingData);
+        } catch (error: any) {
+                console.log('eeee', error)
+                console.error(`Validation Error: ${error.message}`);
+                response.status(400).json({error: 'Invalid input data.'});
         }
-
-        private getById = async (request: Request, response: Response) => {
-            const id = Number(request.params.id);
-            const item = testArr[id];
-            if (item !== undefined) {
-                response.status(200).json(item);
-            } else {
-                response.status(404).json({ message: 'Item not found' });
-            }
-        }
-
-        private deleteById = async (request: Request, response: Response) => {
-            const id = request.params.id;
-            const index = parseInt(id);
-
-            if (!isNaN(index) && index >= 0 && index < testArr.length) {
-                testArr.splice(index, 1);
-                response.status(200).json(testArr);
-            } else {
-                response.status(404).json({ message: 'Item not found' });
-            }
-        }
-
-        private getNItems = async (request: Request, response: Response) => {
-            const num = parseInt(request.params.num);
-
-            if (isNaN(num) || num <= 0) {
-                response.status(400).json({ message: 'Invalid number specified' });
-            } else {
-                const selectedItems = testArr.slice(0, num);
-                response.status(200).json(selectedItems);
-            }
-        }
-
-        private addElement = async (request: Request, response: Response) => {
-            const { elem } = request.body;
-
-            testArr.push(elem);
-
-            response.status(200).json(testArr);
-        }
-
-        private deleteAll = async (request: Request, response: Response) => {
-            testArr = [];
-            response.status(200).json(testArr);
-        }
-
-
     }
+
+    private getElementById  = async (request: Request, response: Response, next: NextFunction) => {
+        const { id } = request.params;
+        const post = await this.dataService.query({ _id: id });
+        response.status(200).json(post);
+    }
+
+    private removePosts  = async (request: Request, response: Response, next: NextFunction) => {
+        const { id } = request.params;
+        await this.dataService.deleteData();
+        response.status(200);
+    };
+
+    private getNumPosts = async (request: Request, response: Response, next: NextFunction) => {
+        const { num } = request.params;
+        const numData = await this.dataService.getNumPosts(num);
+        response.status(200).json(numData);
+    };    
+
+    
+    
+    private getAllPosts = async (request: Request, response: Response, next: NextFunction) => {
+        const posts = await this.dataService.getAllPosts();
+        response.status(200).json(posts);
+    };
+
+    private deletePostById = async (request: Request, response: Response, next: NextFunction) => {
+        const { id } = request.params;
+        await this.dataService.deletePostById({_id: id});
+        response.status(200);
+    };
+
+    
+}
+
 
     export default PostController;
